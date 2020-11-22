@@ -1,0 +1,155 @@
+---
+title: "R Notebook"
+author: "AHaotian Zhang  and APPETI YAO Wateba "
+date: "21/11/20"
+output: html_document
+---
+
+The code chunk appears:
+```{r}
+```
+
+```{r}
+library('igraph')
+library('ggraph')
+library('wrswoR')
+```
+
+
+Let's generate the initial graph
+```{r}
+g <- graph(edges = c(1,2,2,3,3,4,4,1), directed = TRUE,n=4)
+plot(g)
+```
+```{r}
+# To choose a vertex uniformly among existing vertices
+random_unif_vertex<-function(n) sample(1:n,1,replace=T) 
+
+# To chose random in degree based vertex
+random_weigthed_vertex <- function(n,probs){ 
+  s = sample(1:n,1, replace=T,prob=probs)
+  return(s)
+}
+
+#function to decide if link is out or in . TRUE if OUT - FALSE if IN
+choice_type <- function(p) sample(c(TRUE,FALSE),1, replace=T,prob=c(p,1-p))
+
+```
+
+```{r}
+d = degree(g,V(g),mode='in')
+probs = d / sum(d)
+probs
+```
+
+
+# To generate our drowing random graph
+```{r}
+generate_graph <- function(init_graph, N=10, outprob=0.5){
+    init_vertex = gorder(init_graph) +1
+    for(vertex_id in init_vertex:N){
+      
+    
+       w_c = choice_type(outprob)
+        
+       if(w_c) {
+          d = degree(init_graph,V(init_graph),mode='in')
+          probs = d / sum(d)
+          choosen_vertex = random_weigthed_vertex(vertex_id - 1,probs)
+          init_graph = init_graph + vertices(vertex_id)
+          init_graph = init_graph + edge(vertex_id,choosen_vertex)
+         
+       }else {
+          choosen_vertex = random_unif_vertex(vertex_id - 1)
+          init_graph = init_graph + vertices(vertex_id)
+          init_graph = init_graph + edge(vertex_id,choosen_vertex)
+       }
+    }
+    
+    return(init_graph)
+ }
+```
+
+
+```{r}
+```
+
+
+```{r}
+gen <- generate_graph(g,10000)
+plot(gen)
+```
+
+# Function to plot empirical distribution
+```{r}
+comp_deg_dist <- function(g){
+  d = degree(g,V(g),mode='in')
+  return(d)
+}
+
+
+dist = comp_deg_dist(gen)
+max_degree = max(dist)
+cumul_dist = c()
+for(k in 1:max_degree){
+  cumul_dist <- append(cumul_dist,sum(which(dist>=k)))
+}
+
+plot(log(1:max_degree),log(cumul_dist),type = 'l',col="blue", pch="o")
+
+```
+```{r}
+#let's generate many graph and plot
+M = 6 # number of graphs 
+size = 1000 # size of graph
+
+```
+```{r}
+
+for (gen in 1:M){
+  gen <- generate_graph(g,size)
+  dist = degree(gen,V(gen),mode='in')
+  max_degree = max(dist)
+  cumul_dist = c()
+  for(k in 1:max_degree){
+    cumul_dist <- append(cumul_dist,sum(which(dist>=k)))
+  }
+  plot(log(1:max_degree),log(cumul_dist),type = 'l',col="blue", pch="o")
+}
+
+```
+
+Looking at te plot of the  complementary cumulative degree distribution , We cqn see that the plot are almost a straight line 
+which can lead us to think that the graphs generated degree distribution  appear to follow a power law.
+
+
+To support this evidence we will plot below the distribution of graph degree.
+As the degree distribution can be aproximated by a poison distribution
+of parameter mu = E(k) = p(N -1)
+
+Lets compare both distributions on same plot.
+
+```{r}
+M = 6 # number of graphs 
+size = 1000
+
+for (gen in 1:M){
+  gen <- generate_graph(g,size)
+  mu = centr_degree(gen,mode='in')
+  mu = mu$centralization
+
+  dist = degree(gen,V(gen),mode='in')
+  max_degree = max(dist)
+  eq_dist = c()
+  x = 1:max_degree
+  for(k in x){
+    eq_dist <- append(eq_dist,sum(which(dist>=k)))
+  }
+  plot(x,log(eq_dist),type = 'l',col="blue", pch="o")
+  lines(x,ppois(x,mu),type = 'l',col="red", pch="o")
+}
+
+```
+
+The distribustion do not math with the poisson distribution at all so we can safely say that the graphs generated are following a power law distribution
+according to what said precedently 
