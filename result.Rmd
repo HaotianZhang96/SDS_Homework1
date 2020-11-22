@@ -108,7 +108,7 @@ B2 <- erdos.renyi.game(40,1/3)
 plot(B2)
 G2 <-as.matrix(as_adjacency_matrix(B2))
 out2<-maxcut(G2)
-muxcut2 <-abs(out2$pobj)
+maxcut2 <-abs(out2$pobj)
 maxcut2
 ```
 ```{r maxcut}
