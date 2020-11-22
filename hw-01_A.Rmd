@@ -1,0 +1,154 @@
+---
+title: "HW1_QA"
+author: "Haotian Zhang  and APPETI YAO Wateba "
+date: "2020/11/16"
+output: html_document
+---
+
+## import libraries
+
+```{r import libraries}
+
+library(igraph)
+library(sdpt3r)
+library(Rlab)
+```
+
+## generate a random undirected graph
+```{r plot graph}
+B<-erdos.renyi.game(7,1/2)
+plot(B)
+
+```
+
+## Show the Graph's all vertices and edges
+```{r V E}
+V(B) #vertices
+E(B) #edges
+```
+
+## Get the value of opt (the size of the maximum cut we are chasing) by maxcut function in the module of "sdpt3r"
+```{r maxcut}
+
+G <- as.matrix(as_adjacency_matrix(B)) 
+out<- maxcut(G)
+maxcut <- abs(out$pobj)
+maxcut
+```
+
+
+## Randomized Max-Cut Algorithm proposed by Paul Erdos
+Create U as a random subset of V ; that is, for each vertex v belong to V , flip a fair coin: if Heads, add v to U otherwise do not.
+
+From the algorithm, we can know that the probability that add v to U obeys to the Bernoulli distribution,so X={add v to U}~Ber(1,0.5).
+
+
+
+###Build a function to extract a subset from V to U
+parameters: a is the original set, b is the number you want extract
+```{r}
+# rbern(n,prob): Random Sample From Bernoulli Distribution 
+Subset <- function(a,b){
+  U<-c()
+  for(k in 1:b){
+    rand <- rbern(1,0.5)
+    if(rand==1)
+      U<-append(U,a[k])
+  }
+  return(U)
+}
+#as_ids:Convert Graph B To An Ordinary Vector
+#gsize:number of edges of B
+a <- as_ids(V(B))
+U <-Subset(a,gsize(B))
+U
+```
+
+
+
+
+### Evaluate the average cut-size over these M simulations and compare it with the theoretical bound opt(G)/2.
+
+step1: get the edge of G and create the $\delta$ set.
+```{r}
+#lower.tri: returns a matrix of logicals the same size of a given matrix with entries TRUE in the lower or upper triangle.
+G[lower.tri(G,diag=FALSE)] <-0
+e<- which(G==1,arr.ind = TRUE)
+colnames(e) <-c("u","v")
+e
+```
+
+step2:create subset U and return its edges' number
+$\delta u=\{\{u,v\}\in E such\ that\ u\in U\ and\ v\notin U\}$
+```{r}
+EdgeNum <-function(U,e){
+  edges<-c()
+  for(row in 1:nrow(e)){
+    if((e[row,1] %in% U) && (!(e[row,2] %in% U))){
+      edges <- append(edges, c(e[row,1],e[row,2]))
+    }
+  }
+  return(length(edges))
+}
+```
+
+
+step3:evaluate the average cut size over the M  simulations
+```{r}
+averageCutSize <- function(a,e,M){
+  avg.cutsize<-c()
+  for(i in 1:M){
+    U<-Subset(a,length(a))
+    card.u<-EdgeNum(U,e)
+    avg.cutsize<-append(avg.cutsize,card.u)
+  }
+  return(mean(avg.cutsize))
+}
+```
+
+step4:compare the average cut size with OPT(G)/2
+```{r}
+card <- averageCutSize(a,e ,1000)
+Truecard <- maxcut/2
+card
+Truecard
+card >= Truecard
+```
+*From the result, we can know that the expected size of the cut set determined by U is at least opt/2.*
+
+
+## Repeat the previous algorithm and increase the size of Graph to observation if somenthing is changed 
+
+```{r}
+C <- erdos.renyi.game(50,1/3)
+plot(C)
+G2 <-as.matrix(as_adjacency_matrix(C))
+out2 <- maxcut(G2)
+maxcut2 <- abs(out2$pobj)
+maxcut2
+```
+```{r}
+a <- as_ids(V(C))
+U<-Subset(a ,gsize(C))
+U
+```
+```{r}
+G2[lower.tri(G2,diag=FALSE)] <-0
+e<-which(G2==1,arr.ind = TRUE)
+colnames(e) <-c("u","v")
+```
+
+
+```{r}
+Truecard2 <-maxcut2/2
+Truecard2
+card2 <- averageCutSize(a , e ,1000)
+card2
+card2 >= Truecard2
+```
+*From the result,when we changed the graph size,  the expected size of the cut set still determined by U is at least opt/2.*
+
+
+
+
+
