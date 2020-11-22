@@ -1,0 +1,135 @@
+---
+title: "HW1_QA"
+author: "Haotian Zhang"
+date: "2020/11/16"
+output: html_document
+---
+
+```{r import labraries}
+library(igraph)
+library(sdpt3r)
+library(ggraph)
+library(Rlab)
+```
+
+
+```{r plot graph}
+B <- graph(edges=c(1,2, 2,3, 2,4, 3,4, 4,5, 4,6, 5,7, 6,7, 7,8), n=8, directed = FALSE)
+plot(B)
+```
+```{r V E}
+V(B) #node
+E(B) #edge
+```
+
+
+```{r maxcut}
+
+G <- as.matrix(as_adjacency_matrix(B)) 
+out<- maxcut(G)
+
+maxcut <- abs(out$pobj)
+maxcut
+```
+```{r maxcut}
+pp<-0.5
+nn<-100
+```
+
+
+```{r maxcut}
+plot(0:nn, dbinom(0:nn,nn,pp),
+    xlim=c(0,100),ylim=c(0,0.10),
+    type="b",lty=4,col=gray(.5),pch=21)
+grid()
+legend("topright",c("p=0.5,n=100"),
+       pch=20,bty="n",cex=0.7)
+```
+
+```{r maxcut}
+
+Subset <- function(a,b){
+  U<-c()
+  for(k in 1:b){
+    rand <- rbern(1,0.5)
+    if(rand==1)
+      U<-append(U,a[k])
+  }
+  return(U)
+}
+```
+
+
+```{r maxcut}
+a <- as_ids(V(B))
+U <-Subset(a,gsize(B))
+U
+```
+
+```{r maxcut}
+G[lower.tri(G,diag=FALSE)] <-0
+e<- which(G==1,arr.ind = TRUE)
+colnames(e) <-c("V1","V2")
+e
+```
+```{r maxcut}
+EdgeNum <-function(U,e){
+  edges<-c()
+  for(row in 1:nrow(e)){
+    if((e[row,1] %in% U) && (!(e[row,2] %in% U))){
+      edges <- append(edges, c(e[row,1],e[row,2]))
+    }
+  }
+  return(length(edges))
+}
+```
+
+```{r maxcut}
+averageCutSize <- function(a,e,M){
+  avg.cutsize<-c()
+  for(i in 1:M){
+    U<-Subset(a,length(a))
+    card.u<-EdgeNum(U,e)
+    avg.cutsize<-append(avg.cutsize,card.u)
+  }
+  return(mean(avg.cutsize))
+}
+```
+
+```{r maxcut}
+averageCutSize(a,e ,1000)
+```
+```{r maxcut}
+Truecard <- maxcut/2
+Truecard
+```
+```{r maxcut}
+B2 <- erdos.renyi.game(40,1/3)
+plot(B2)
+G2 <-as.matrix(as_adjacency_matrix(B2))
+out2<-maxcut(G2)
+muxcut2 <-abs(out2$pobj)
+maxcut2
+```
+```{r maxcut}
+a <-as_ids(V(B2))
+U<-Subset(a ,gsize(B2))
+U
+```
+```{r maxcut}
+G2[lower.tri(G2,diag=FALSE)] <-0
+e<-which(G2==1,arr.ind = TRUE)
+colnames(e) <-c("V1","V2")
+```
+```{r maxcut}
+Truecard2 <-maxcut2/2
+Truecard2
+```
+```{r maxcut}
+averageCutSize(a , e ,1000)
+
+```
+
+
+
+
